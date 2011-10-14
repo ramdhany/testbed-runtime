@@ -23,41 +23,59 @@
 
 package de.uniluebeck.itm.tr.snaa.cmdline.server;
 
+import java.io.FileReader;
+import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+import javax.xml.ws.Endpoint;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpServer;
+
 import de.uniluebeck.itm.tr.snaa.dummy.DummySNAA;
 import de.uniluebeck.itm.tr.snaa.federator.FederatorSNAA;
 import de.uniluebeck.itm.tr.snaa.jaas.JAASSNAA;
+import de.uniluebeck.itm.tr.snaa.ldap.LdapSNAA;
 import de.uniluebeck.itm.tr.snaa.shibboleth.MockShibbolethSNAAModule;
 import de.uniluebeck.itm.tr.snaa.shibboleth.ShibbolethProxy;
 import de.uniluebeck.itm.tr.snaa.shibboleth.ShibbolethSNAAImpl;
 import de.uniluebeck.itm.tr.snaa.shibboleth.ShibbolethSNAAModule;
 import de.uniluebeck.itm.tr.snaa.wisebed.WisebedSnaaFederator;
-import eu.wisebed.shibboauth.IShibbolethAuthenticator;
+import eu.wisebed.api.snaa.Action;
+import eu.wisebed.api.snaa.AuthenticationExceptionException;
+import eu.wisebed.api.snaa.AuthenticationTriple;
+import eu.wisebed.api.snaa.SNAA;
+import eu.wisebed.api.snaa.SNAAExceptionException;
+import eu.wisebed.api.snaa.SecretAuthenticationKey;
 import eu.wisebed.testbed.api.snaa.authorization.AttributeBasedAuthorization;
 import eu.wisebed.testbed.api.snaa.authorization.IUserAuthorization;
 import eu.wisebed.testbed.api.snaa.authorization.datasource.AuthorizationDataSource;
 import eu.wisebed.testbed.api.snaa.authorization.datasource.ShibbolethDataSource;
 import eu.wisebed.testbed.api.snaa.helpers.SNAAServiceHelper;
-import eu.wisebed.api.snaa.*;
-import org.apache.commons.cli.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.xml.namespace.QName;
-import javax.xml.ws.Endpoint;
-import java.io.FileReader;
-import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("restriction")
 public class SNAAServer {
@@ -143,16 +161,13 @@ public class SNAAServer {
 
             type = props.getProperty(snaaName + ".type", "");
             path = props.getProperty(snaaName + ".path", "/snaa/" + snaaName);
+            urnprefix = props.getProperty(snaaName + ".urnprefix", "urn:default:" + snaaName);
 
             if ("dummy".equals(type)) {
-
                 urnprefix = props.getProperty(snaaName + ".urnprefix", "urn:default:" + snaaName);
                 startDummySNAA(path, urnprefix);
 
             } else if ("shibboleth".equals(type)) {
-
-                urnprefix = props.getProperty(snaaName + ".urnprefix", "urn:default:" + snaaName);
-
                 String authorizationClassName = props.getProperty(snaaName + ".authorization_class",
                         "eu.wisebed.testbed.api.snaa.authorization.AlwaysAllowAuthorization"
                 );
@@ -168,8 +183,6 @@ public class SNAAServer {
                 startShibbolethSNAA(path, urnprefix, secretAuthkeyUrl, authorization, shibbolethInjector, shibbolethProxy);
 
             } else if ("jaas".equals(type)) {
-
-                urnprefix = props.getProperty(snaaName + ".urnprefix", "urn:default:" + snaaName);
                 String jaasModuleName = props.getProperty(snaaName + ".module", null);
                 String jaasConfigFile = props.getProperty(snaaName + ".configfile", null);
                 String authorizationClassName = props.getProperty(snaaName + ".authorization_class",
@@ -221,7 +234,12 @@ public class SNAAServer {
 
                 startFederator(fedType, path, secretAuthkeyUrl, shibbolethInjector, shibbolethProxy, federatedUrnPrefixes);
 
-            } else {
+            } else if ("ldap".equals(type)){
+                String ldapUrl = props.getProperty(snaaName + ".ldap");
+                startLdapSNAA(path, urnprefix,ldapUrl);                
+            }
+            
+            else {
                 log.error("Found unknown type " + type + " for snaa name " + snaaName + ". Ignoring...");
             }
 
@@ -230,6 +248,18 @@ public class SNAAServer {
         return server;
 
     }
+
+    private static void startLdapSNAA(String path, String urnprefix, String ldapUrl) {
+        LdapSNAA ldapSNAA = new LdapSNAA(ldapUrl);
+
+        HttpContext context = server.createContext(path);
+        Endpoint endpoint = Endpoint.create(ldapSNAA);
+        endpoint.publish(context);
+
+        log.info("Started dummy SNAA on " + server.getAddress() + path);
+
+    }
+
 
     private static ShibbolethProxy setOptionalShibbolethProxy(Properties props) {
         String shibbolethProxyHost = props.getProperty("config.shibboleth.proxyHost");
