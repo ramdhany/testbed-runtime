@@ -49,12 +49,13 @@ import eu.wisebed.api.snaa.SecretAuthenticationKey;
         targetNamespace = "http://testbed.wisebed.eu/api/snaa/v1/")
 public class LdapSNAA implements SNAA {
 
-    
-    private String ldapUrl;
+    private String url;
     private Random r = new SecureRandom();
+    private String baseDN;
 
-    public LdapSNAA(String ldapUrl) {
-        this.ldapUrl=ldapUrl;
+    public LdapSNAA(String ldapUrl, String ldapBaseDN) {
+        this.url = ldapUrl;
+        this.baseDN = ldapBaseDN;
     }
 
     @Override
@@ -74,7 +75,7 @@ public class LdapSNAA implements SNAA {
                     keys.add(secretAuthenticationKey);
                 }
             } catch (NamingException e) {
-               throw createSNAAException(e.getMessage());
+                throw createSNAAException(e.getMessage());
             }
         }
 
@@ -84,17 +85,16 @@ public class LdapSNAA implements SNAA {
     private boolean authenticateLdap(AuthenticationTriple triple) throws NamingException {
         Hashtable<String, Object> env = new Hashtable<String, Object>();
         env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
-        env.put(Context.PROVIDER_URL, ldapUrl);
-        
-        env.put(Context.SECURITY_PRINCIPAL, triple.getUsername());
+        env.put(Context.PROVIDER_URL, url);
+
+        env.put(Context.SECURITY_PRINCIPAL, "uid=" + triple.getUsername() + "," + baseDN);
         env.put(Context.SECURITY_CREDENTIALS, triple.getPassword());
-        
+
         // if authorization fails a naming exception is thrown
         DirContext context = new InitialDirContext(env);
         context.close();
         return true;
     }
-   
 
     @Override
     public

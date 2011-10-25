@@ -236,7 +236,8 @@ public class SNAAServer {
 
             } else if ("ldap".equals(type)){
                 String ldapUrl = props.getProperty(snaaName + ".ldap");
-                startLdapSNAA(path, urnprefix,ldapUrl);                
+                String ldapBaseDN = props.getProperty(snaaName + ".baseDN");
+                startLdapSNAA(path, ldapUrl, ldapBaseDN);                
             }
             
             else {
@@ -249,14 +250,14 @@ public class SNAAServer {
 
     }
 
-    private static void startLdapSNAA(String path, String urnprefix, String ldapUrl) {
-        LdapSNAA ldapSNAA = new LdapSNAA(ldapUrl);
+    private static void startLdapSNAA(String path, String ldapUrl, String ldapBaseDN) {
+        LdapSNAA ldapSNAA = new LdapSNAA(ldapUrl, ldapBaseDN);
 
         HttpContext context = server.createContext(path);
         Endpoint endpoint = Endpoint.create(ldapSNAA);
         endpoint.publish(context);
 
-        log.info("Started dummy SNAA on " + server.getAddress() + path);
+        log.info("Started ldap SNAA on " + server.getAddress() + path);
 
     }
 
