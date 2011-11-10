@@ -92,6 +92,7 @@ public class LdapSNAA implements SNAA {
 
         // if authorization fails a naming exception is thrown
         DirContext context = new InitialDirContext(env);
+     
         context.close();
         return true;
     }
