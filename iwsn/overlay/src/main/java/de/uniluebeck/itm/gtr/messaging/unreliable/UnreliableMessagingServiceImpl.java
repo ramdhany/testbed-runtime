@@ -23,12 +23,11 @@
 
 package de.uniluebeck.itm.gtr.messaging.unreliable;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.protobuf.ByteString;
-import de.uniluebeck.itm.gtr.LocalNodeNames;
+import de.uniluebeck.itm.gtr.LocalNodeNameManager;
 import de.uniluebeck.itm.gtr.connection.Connection;
 import de.uniluebeck.itm.gtr.connection.ConnectionInvalidAddressException;
 import de.uniluebeck.itm.gtr.connection.ConnectionService;
@@ -41,6 +40,8 @@ import de.uniluebeck.itm.gtr.routing.RoutingTableService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -49,6 +50,8 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 
 @Singleton
@@ -79,6 +82,8 @@ class UnreliableMessagingServiceImpl implements UnreliableMessagingService {
 	private ConnectionService connectionService;
 
 	private RoutingTableService routingTableService;
+
+	private final LocalNodeNameManager localNodeNameManager;
 
 	private MessageEventService messageEventService;
 
@@ -121,7 +126,6 @@ class UnreliableMessagingServiceImpl implements UnreliableMessagingService {
 			this.messageCacheEntry = messageCacheEntry;
 		}
 
-		@SuppressWarnings("unchecked")
 		private void dispatchMessages() {
 
 			long now = System.currentTimeMillis();
@@ -135,8 +139,16 @@ class UnreliableMessagingServiceImpl implements UnreliableMessagingService {
 
 					// try to send the message, fails silently if one of the
 					// arguments is null. this results in a drop of the message.
-					if (sendMessage(messageCacheEntry.msg, connection)) {
-						messageEventService.sent(messageCacheEntry.msg);
+					if (connection != null) {
+
+						boolean sent = sendMessage(messageCacheEntry.msg, connection);
+						if (sent) {
+							messageEventService.sent(messageCacheEntry.msg);
+						}
+
+					} else {
+
+						messageEventService.dropped(messageCacheEntry.msg);
 					}
 
 				} else {
@@ -154,6 +166,7 @@ class UnreliableMessagingServiceImpl implements UnreliableMessagingService {
 		 * @return a {@link Connection} object for the message {@code msg} or
 		 *         {@code null} if no connection can be established
 		 */
+		@Nullable
 		private Connection getConnection(Messages.Msg msg) {
 
 			try {
@@ -186,37 +199,31 @@ class UnreliableMessagingServiceImpl implements UnreliableMessagingService {
 		 * @param connection the connection the message shall be sent over
 		 * @return {@code true} if the msg has been sent or {@code false} if not
 		 */
-		private boolean sendMessage(Messages.Msg msg, Connection connection) {
+		private boolean sendMessage(@Nonnull Messages.Msg msg, @Nonnull Connection connection) {
 
-			if (msg == null) {
-				log.debug("Message is null. Ignoring...");
-				return false;
-			}
-
-			if (connection == null) {
-				log.debug("de could not be established. Dropping: {}", msg);
-				return false;
-			}
+			checkNotNull(msg);
+			checkNotNull(connection);
 
 			try {
 
 				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				synchronized (connection) {
 					MessageTools.sendMessage(msg, connection.getOutputStream());
-
 				}
 
 				return true;
 
 			} catch (IOException e) {
+
 				log.debug("IOException while constructing stream to {}. Dropping message:\n" +
 						"{}\n" +
 						"Closing connection...", msg.getTo(), msg);
 
 				connection.disconnect();
-
 				return false;
+
 			} catch (Exception e) {
+
 				log.warn("Exception while serializing message to {}."
 						+ "Dropping message:\n{}", msg.getTo(), Arrays.toString(msg.getPayload().toByteArray()));
 				return false;
@@ -235,8 +242,6 @@ class UnreliableMessagingServiceImpl implements UnreliableMessagingService {
 	 * cache and send them to the appropriate recipients.
 	 */
 	private MessageCache<UnreliableMessagingCacheEntry> messageCache;
-
-	private ImmutableSet<String> localNodeNames;
 
 	public void sendAsync(Messages.Msg message) {
 
@@ -257,7 +262,7 @@ class UnreliableMessagingServiceImpl implements UnreliableMessagingService {
 		}
 
 		// if it's for this local node we can deliver it directly through message eventing
-		if (localNodeNames.contains(message.getTo())) {
+		if (localNodeNameManager.getLocalNodeNames().contains(message.getTo())) {
 			messageEventService.received(message);
 			return;
 		}
@@ -282,9 +287,9 @@ class UnreliableMessagingServiceImpl implements UnreliableMessagingService {
 
 		try {
 
-			ObjectOutputStream oout = new ObjectOutputStream(out);
-			oout.writeObject(msg);
-			oout.close();
+			ObjectOutputStream objectOutputStream = new ObjectOutputStream(out);
+			objectOutputStream.writeObject(msg);
+			objectOutputStream.close();
 
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e);
@@ -309,14 +314,13 @@ class UnreliableMessagingServiceImpl implements UnreliableMessagingService {
 										  MessageEventService messageEventService,
 										  @Unreliable MessageCache<UnreliableMessagingCacheEntry> messageCache,
 										  final RoutingTableService routingTableService,
-										  @LocalNodeNames String... localNodeNames) {
+										  LocalNodeNameManager localNodeNameManager) {
 
 		this.connectionService = connectionService;
 		this.messageEventService = messageEventService;
 		this.messageCache = messageCache;
 		this.routingTableService = routingTableService;
-		this.localNodeNames = ImmutableSet.copyOf(localNodeNames);
-
+		this.localNodeNameManager = localNodeNameManager;
 	}
 
 	@Override

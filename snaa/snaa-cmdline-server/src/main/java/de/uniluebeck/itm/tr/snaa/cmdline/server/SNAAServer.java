@@ -77,6 +77,7 @@ import eu.wisebed.testbed.api.snaa.authorization.datasource.AuthorizationDataSou
 import eu.wisebed.testbed.api.snaa.authorization.datasource.ShibbolethDataSource;
 import eu.wisebed.testbed.api.snaa.helpers.SNAAServiceHelper;
 
+
 @SuppressWarnings("restriction")
 public class SNAAServer {
 
@@ -92,10 +93,6 @@ public class SNAAServer {
         GENERIC, WISEBED
     }
 
-    /**
-     * @param args
-     * @throws Exception
-     */
     public static void main(String[] args) throws Exception {
 
         String propertyFile = null;

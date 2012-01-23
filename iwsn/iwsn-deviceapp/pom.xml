@@ -29,7 +29,7 @@
 	<parent>
 		<groupId>de.uniluebeck.itm</groupId>
 		<artifactId>tr.iwsn</artifactId>
-		<version>0.7.3-SNAPSHOT</version>
+		<version>0.9-SNAPSHOT</version>
 		<relativePath>../</relativePath>
 	</parent>
 
@@ -51,14 +51,6 @@
 		<dependency>
 			<groupId>de.uniluebeck.itm</groupId>
 			<artifactId>tr.node-api</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>de.uniluebeck.itm</groupId>
-			<artifactId>tr.wsn-device-drivers</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>de.uniluebeck.itm</groupId>
-			<artifactId>tr.motelist</artifactId>
 		</dependency>
 
 		<!-- other itm projects dependencies -->
@@ -88,7 +80,7 @@
 		</dependency>
 		<dependency>
 			<groupId>de.uniluebeck.itm.netty.handlerstack</groupId>
-			<artifactId>netty-handlerstack</artifactId>
+			<artifactId>filterpipeline</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>de.uniluebeck.itm.netty.handlerstack</groupId>

@@ -23,7 +23,7 @@
 
 package de.uniluebeck.itm.tr.nodeapi;
 
-import com.google.common.util.concurrent.ValueFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import de.uniluebeck.itm.tr.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,9 +38,12 @@ class InteractionImpl implements Interaction {
 
 	private static final Logger log = LoggerFactory.getLogger(Interaction.class);
 
-	private NodeApi nodeApi;
+	private final String nodeUrn;
 
-	public InteractionImpl(NodeApi nodeApi) {
+	private final NodeApi nodeApi;
+
+	public InteractionImpl(final String nodeUrn, NodeApi nodeApi) {
+		this.nodeUrn = nodeUrn;
 		this.nodeApi = nodeApi;
 	}
 
@@ -50,8 +53,9 @@ class InteractionImpl implements Interaction {
 		if (log.isTraceEnabled()) {
 
 			log.trace(
-					"InteractionImpl.sendVirtualLinkMessage(rssi={}, lqi={}, destination={}, source={}, payload={}, callback)",
+					"{} => InteractionImpl.sendVirtualLinkMessage(rssi={}, lqi={}, destination={}, source={}, payload={}, callback)",
 					new Object[]{
+							nodeUrn,
 							StringUtils.toHexString(RSSI),
 							StringUtils.toHexString(LQI),
 							destination,
@@ -65,7 +69,7 @@ class InteractionImpl implements Interaction {
 		ByteBuffer buffer = Packets.Interaction.newVirtualLinkMessagePacket(
 				requestId, RSSI, LQI, destination, source, payload
 		);
-		ValueFuture<NodeApiCallResult> future = ValueFuture.create();
+		SettableFuture<NodeApiCallResult> future = SettableFuture.create();
 		nodeApi.sendToNode(requestId, future, buffer);
 		return future;
 	}
@@ -77,7 +81,7 @@ class InteractionImpl implements Interaction {
 		ByteBuffer buffer = Packets.Interaction.newVirtualLinkMessagePacket(
 				requestId, destination, source, payload
 		);
-		ValueFuture<NodeApiCallResult> future = ValueFuture.create();
+		SettableFuture<NodeApiCallResult> future = SettableFuture.create();
 		nodeApi.sendToNode(requestId, future, buffer);
 		return future;
 	}
@@ -89,7 +93,7 @@ class InteractionImpl implements Interaction {
 		ByteBuffer buffer = Packets.Interaction.newByteMessagePacket(
 				requestId, binaryType, payload
 		);
-		ValueFuture<NodeApiCallResult> future = ValueFuture.create();
+		SettableFuture<NodeApiCallResult> future = SettableFuture.create();
 		nodeApi.sendToNode(requestId, future, buffer);
 		return future;
 	}
@@ -101,7 +105,7 @@ class InteractionImpl implements Interaction {
 		ByteBuffer buffer = Packets.Interaction.newFlashProgramPacket(
 				requestId, payload
 		);
-		ValueFuture<NodeApiCallResult> future = ValueFuture.create();
+		SettableFuture<NodeApiCallResult> future = SettableFuture.create();
 		nodeApi.sendToNode(requestId, future, buffer);
 		return future;
 	}

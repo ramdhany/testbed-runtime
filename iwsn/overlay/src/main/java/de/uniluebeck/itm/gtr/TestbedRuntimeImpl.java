@@ -23,13 +23,11 @@
 
 package de.uniluebeck.itm.gtr;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.inject.ConfigurationException;
+import com.google.common.eventbus.AsyncEventBus;
+import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
-import com.google.inject.Injector;
 import com.google.inject.Singleton;
-import de.uniluebeck.itm.gtr.common.SchedulerService;
-import de.uniluebeck.itm.tr.util.Service;
+import com.google.inject.name.Named;
 import de.uniluebeck.itm.gtr.connection.ConnectionService;
 import de.uniluebeck.itm.gtr.messaging.event.MessageEventService;
 import de.uniluebeck.itm.gtr.messaging.reliable.ReliableMessagingService;
@@ -39,154 +37,129 @@ import de.uniluebeck.itm.gtr.messaging.unreliable.UnreliableMessagingService;
 import de.uniluebeck.itm.gtr.naming.NamingService;
 import de.uniluebeck.itm.gtr.routing.RoutingTableService;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 
 @Singleton
 class TestbedRuntimeImpl implements TestbedRuntime {
 
-	private Class[] services;
-
-	private String[] localNodeNames;
-
-	private Injector injector;
+	@Inject
+	private LocalNodeNameManager localNodeNameManager;
 
 	@Inject
-	public TestbedRuntimeImpl(
-			@TestbedRuntimeServices Class[] services,
-			@LocalNodeNames String[] localNodeNames,
-			Injector injector) {
+	private ConnectionService connectionService;
 
-		this.services = services;
-		this.localNodeNames = localNodeNames;
-		this.injector = injector;
+	@Inject
+	private MessageEventService messageEventService;
+
+	@Inject
+	private MessageServerService messageServerService;
+
+	@Inject
+	private NamingService namingService;
+
+	@Inject
+	private ReliableMessagingService reliableMessagingService;
+
+	@Inject
+	private RoutingTableService routingTableService;
+
+	@Inject
+	private UnreliableMessagingService unreliableMessagingService;
+
+	@Inject
+	private SingleRequestMultiResponseService singleRequestMultiResponseService;
+
+	@Inject
+	@Named(TestbedRuntime.INJECT_ASYNC_EVENTBUS_EXECUTOR)
+	private ExecutorService asyncEventBusExecutor;
+
+	private EventBus eventBus;
+
+	private AsyncEventBus asyncEventBus;
+
+	@Override
+	public void stop() {
+		singleRequestMultiResponseService.stop();
+		unreliableMessagingService.stop();
+		routingTableService.stop();
+		reliableMessagingService.stop();
+		namingService.stop();
+		messageServerService.stop();
+		messageEventService.stop();
+		connectionService.stop();
 	}
 
 	@Override
-	public void shutdown() {
-		stopServices();
+	public void start() throws Exception {
+		connectionService.start();
+		messageEventService.start();
+		messageServerService.start();
+		namingService.start();
+		reliableMessagingService.start();
+		routingTableService.start();
+		unreliableMessagingService.start();
+		singleRequestMultiResponseService.start();
 	}
 
 	@Override
-	public void startServices() throws Exception {
-		for (Class<?> clazz : services) {
-			((Service) injector.getInstance(clazz)).start();
+	public EventBus getEventBus() {
+		if (eventBus == null) {
+			eventBus = new EventBus();
 		}
+		return eventBus;
 	}
 
 	@Override
-	public void stopServices() {
-		List<Class> list = Arrays.asList(services);
-		Collections.reverse(list);
-		for (Class<?> clazz : list) {
-			((Service) injector.getInstance(clazz)).stop();
+	public AsyncEventBus getAsyncEventBus() {
+		if (asyncEventBus == null) {
+			asyncEventBus = new AsyncEventBus(asyncEventBusExecutor);
 		}
+		return asyncEventBus;
 	}
 
 	@Override
 	public ReliableMessagingService getReliableMessagingService() {
-		try {
-			return injector.getInstance(ReliableMessagingService.class);
-		} catch (ConfigurationException e) {
-			throw new IllegalArgumentException("ReliableMessagingService was not found. " +
-					"Please assure that TestbedRuntime was initialized correctly!"
-			);
-		}
+		return reliableMessagingService;
 	}
 
 	@Override
 	public UnreliableMessagingService getUnreliableMessagingService() {
-		try {
-			return injector.getInstance(UnreliableMessagingService.class);
-		} catch (ConfigurationException e) {
-			throw new IllegalArgumentException("UnreliableMessagingService was not found. " +
-					"Please assure that TestbedRuntime was initialized correctly!"
-			);
-		}
+		return unreliableMessagingService;
 	}
 
 	@Override
 	public ConnectionService getConnectionService() {
-		try {
-			return injector.getInstance(ConnectionService.class);
-		} catch (ConfigurationException e) {
-			throw new IllegalArgumentException("ConnectionService was not found. " +
-					"Please assure that TestbedRuntime was initialized correctly!"
-			);
-		}
+		return connectionService;
 	}
 
 	@Override
 	public RoutingTableService getRoutingTableService() {
-		try {
-			return injector.getInstance(RoutingTableService.class);
-		} catch (ConfigurationException e) {
-			throw new IllegalArgumentException("ConnectionService was not found. " +
-					"Please assure that TestbedRuntime was initialized correctly!"
-			);
-		}
+		return routingTableService;
 	}
 
 	@Override
 	public NamingService getNamingService() {
-		try {
-			return injector.getInstance(NamingService.class);
-		} catch (ConfigurationException e) {
-			throw new IllegalArgumentException("ConnectionService was not found. " +
-					"Please assure that TestbedRuntime was initialized correctly!"
-			);
-		}
+		return namingService;
 	}
 
 	@Override
 	public MessageEventService getMessageEventService() {
-		try {
-			return injector.getInstance(MessageEventService.class);
-		} catch (ConfigurationException e) {
-			throw new IllegalArgumentException("MessageEventService was not found. " +
-					"Please assure that TestbedRuntime was initialized correctly!"
-			);
-		}
+		return messageEventService;
 	}
 
 	@Override
-	public ImmutableSet<String> getLocalNodeNames() {
-		return ImmutableSet.of(localNodeNames);
+	public LocalNodeNameManager getLocalNodeNameManager() {
+		return localNodeNameManager;
 	}
 
 	@Override
 	public MessageServerService getMessageServerService() {
-		try {
-			return injector.getInstance(MessageServerService.class);
-		} catch (ConfigurationException e) {
-			throw new IllegalArgumentException("MessageServerService was not found. " +
-					"Please assure that TestbedRuntime was initialized correctly!"
-			);
-		}
+		return messageServerService;
 	}
 
 	@Override
 	public SingleRequestMultiResponseService getSingleRequestMultiResponseService() {
-		try {
-			return injector.getInstance(SingleRequestMultiResponseService.class);
-		} catch (ConfigurationException e) {
-			throw new IllegalArgumentException("SingleRequestMultiResponseService was not found. " +
-					"Please assure that TestbedRuntime was initialized correctly!"
-			);
-		}
+		return singleRequestMultiResponseService;
 	}
-
-	@Override
-	public SchedulerService getSchedulerService() {
-		try {
-			return injector.getInstance(SchedulerService.class);
-		} catch (ConfigurationException e) {
-			throw new IllegalArgumentException("SchedulerService was not found. " +
-					"Please assure that TestbedRuntime was initialized correctly!"
-			);
-		}
-	}
-
 }

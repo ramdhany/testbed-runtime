@@ -23,7 +23,7 @@
 
 package de.uniluebeck.itm.tr.nodeapi;
 
-import com.google.common.util.concurrent.ValueFuture;
+import com.google.common.util.concurrent.SettableFuture;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.Future;
@@ -31,9 +31,12 @@ import java.util.concurrent.Future;
 
 public class NetworkDescriptionImpl implements NetworkDescription {
 
-	private NodeApi nodeApi;
+	private final String nodeUrn;
 
-	public NetworkDescriptionImpl(NodeApi nodeApi) {
+	private final NodeApi nodeApi;
+
+	public NetworkDescriptionImpl(final String nodeUrn, NodeApi nodeApi) {
+		this.nodeUrn = nodeUrn;
 		this.nodeApi = nodeApi;
 	}
 
@@ -44,7 +47,7 @@ public class NetworkDescriptionImpl implements NetworkDescription {
 		ByteBuffer buffer = Packets.NetworkDescription.newGetPropertyValuePacket(
 				requestId, property
 		);
-		ValueFuture<NodeApiCallResult> future = ValueFuture.create();
+		SettableFuture<NodeApiCallResult> future = SettableFuture.create();
 		nodeApi.sendToNode(requestId, future, buffer);
 		return future;
 	}
@@ -56,7 +59,7 @@ public class NetworkDescriptionImpl implements NetworkDescription {
 		ByteBuffer buffer = Packets.NetworkDescription.newGetNeighborhoodPacket(
 				requestId
 		);
-		ValueFuture<NodeApiCallResult> future = ValueFuture.create();
+		SettableFuture<NodeApiCallResult> future = SettableFuture.create();
 		nodeApi.sendToNode(requestId, future, buffer);
 		return future;
 	}

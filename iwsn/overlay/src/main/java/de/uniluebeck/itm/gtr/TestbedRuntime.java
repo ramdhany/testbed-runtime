@@ -23,67 +23,30 @@
 
 package de.uniluebeck.itm.gtr;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.inject.Guice;
-import de.uniluebeck.itm.gtr.common.CommonModule;
-import de.uniluebeck.itm.gtr.common.SchedulerService;
-import de.uniluebeck.itm.gtr.connection.ConnectionModule;
+import com.google.common.eventbus.AsyncEventBus;
+import com.google.common.eventbus.EventBus;
 import de.uniluebeck.itm.gtr.connection.ConnectionService;
-import de.uniluebeck.itm.gtr.messaging.event.MessageEventModule;
 import de.uniluebeck.itm.gtr.messaging.event.MessageEventService;
-import de.uniluebeck.itm.gtr.messaging.reliable.ReliableMessagingModule;
 import de.uniluebeck.itm.gtr.messaging.reliable.ReliableMessagingService;
-import de.uniluebeck.itm.gtr.messaging.server.MessageServerModule;
 import de.uniluebeck.itm.gtr.messaging.server.MessageServerService;
-import de.uniluebeck.itm.gtr.messaging.srmr.SingleRequestMultiResponseModule;
 import de.uniluebeck.itm.gtr.messaging.srmr.SingleRequestMultiResponseService;
-import de.uniluebeck.itm.gtr.messaging.unreliable.UnreliableMessagingModule;
 import de.uniluebeck.itm.gtr.messaging.unreliable.UnreliableMessagingService;
-import de.uniluebeck.itm.gtr.naming.NamingModule;
 import de.uniluebeck.itm.gtr.naming.NamingService;
-import de.uniluebeck.itm.gtr.routing.RoutingModule;
 import de.uniluebeck.itm.gtr.routing.RoutingTableService;
+import de.uniluebeck.itm.tr.util.Service;
 
 
-public interface TestbedRuntime {
+public interface TestbedRuntime extends Service {
 
-	public static class Factory {
+	String INJECT_RELIABLE_MESSAGING_SCHEDULER = "de.uniluebeck.itm.gtr.messaging.reliable.ReliableMessagingService/scheduler";
 
-		public static TestbedRuntime create(String... localNodeNames) {
+	String INJECT_MESSAGE_SERVER_SCHEDULER = "de.uniluebeck.itm.gtr.messaging.server.MessageServerService/scheduler";
 
-			Class[] services = new Class[]{
-					SchedulerService.class,
-					ConnectionService.class,
-					MessageEventService.class,
-					MessageServerService.class,
-					NamingService.class,
-					ReliableMessagingService.class,
-					RoutingTableService.class,
-					UnreliableMessagingService.class,
-					SingleRequestMultiResponseService.class
-			};
+	String INJECT_ASYNC_EVENTBUS_EXECUTOR = "de.uniluebeck.itm.gtr.TestbedRuntime/asyncEventBusExecutor";
 
-			return Guice.createInjector(
-					new CommonModule(),
-					new ConnectionModule(),
-					new MessageEventModule(),
-					new MessageServerModule(),
-					new NamingModule(),
-					new ReliableMessagingModule(),
-					new RoutingModule(),
-					new UnreliableMessagingModule(),
-					new SingleRequestMultiResponseModule(),
-					new TestbedRuntimeModule(localNodeNames, services)
-			).getInstance(TestbedRuntime.class);
+	EventBus getEventBus();
 
-		}
-	}
-
-	void shutdown();
-
-	void startServices() throws Exception;
-
-	void stopServices();
+	AsyncEventBus getAsyncEventBus();
 
 	ReliableMessagingService getReliableMessagingService();
 
@@ -97,12 +60,10 @@ public interface TestbedRuntime {
 
 	MessageEventService getMessageEventService();
 
-	ImmutableSet<String> getLocalNodeNames();
+	LocalNodeNameManager getLocalNodeNameManager();
 
 	MessageServerService getMessageServerService();
 
 	SingleRequestMultiResponseService getSingleRequestMultiResponseService();
-
-	SchedulerService getSchedulerService();
 
 }

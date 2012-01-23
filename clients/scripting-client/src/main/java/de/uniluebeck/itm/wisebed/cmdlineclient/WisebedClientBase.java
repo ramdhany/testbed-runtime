@@ -1,8 +1,8 @@
 package de.uniluebeck.itm.wisebed.cmdlineclient;
 
-import com.google.common.util.concurrent.ValueFuture;
+import com.google.common.util.concurrent.SettableFuture;
 
-import de.uniluebeck.itm.tr.util.AbstractListenable;
+import de.uniluebeck.itm.tr.util.ListenerManagerImpl;
 import de.uniluebeck.itm.tr.util.ExecutorUtils;
 import de.uniluebeck.itm.tr.util.Tuple;
 import de.uniluebeck.itm.tr.util.UrlUtils;
@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 public abstract class WisebedClientBase {
 
-    protected static class ControllerManager extends AbstractListenable<Controller> implements Controller {
+    protected static class ControllerManager extends ListenerManagerImpl<Controller> implements Controller {
         @Override
         public void experimentEnded() {
             for (Controller controller : listeners) {
@@ -85,7 +85,7 @@ public abstract class WisebedClientBase {
     public Future<List<AuthenticationKey>> authenticate(
             final AuthenticationCredentials... authenticationCredentialsList) {
 
-        final ValueFuture<List<AuthenticationKey>> future = ValueFuture.create();
+        final SettableFuture<List<AuthenticationKey>> future = SettableFuture.create();
         Runnable authenticationRunnable = new Runnable() {
 
             public void run() {

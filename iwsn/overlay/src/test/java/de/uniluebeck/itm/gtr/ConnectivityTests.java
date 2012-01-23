@@ -25,17 +25,12 @@ package de.uniluebeck.itm.gtr;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import de.uniluebeck.itm.gtr.common.CommonModule;
-import de.uniluebeck.itm.gtr.common.SchedulerService;
 import de.uniluebeck.itm.gtr.connection.*;
 import de.uniluebeck.itm.gtr.messaging.MessageTools;
 import de.uniluebeck.itm.gtr.messaging.Messages;
 import de.uniluebeck.itm.gtr.naming.NamingEntry;
 import de.uniluebeck.itm.gtr.naming.NamingInterface;
-import de.uniluebeck.itm.gtr.naming.NamingModule;
-import de.uniluebeck.itm.gtr.naming.NamingService;
-import de.uniluebeck.itm.gtr.routing.RoutingModule;
-import de.uniluebeck.itm.gtr.routing.RoutingTableService;
+import de.uniluebeck.itm.tr.util.ExecutorUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,10 +42,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 import static org.junit.Assert.*;
 
@@ -66,6 +58,8 @@ public class ConnectivityTests {
 	private ConnectionService cs1;
 
 	private ConnectionService cs2;
+
+	private ScheduledExecutorService scheduledExecutorService;
 
 	private class RequestConnectionRunnable implements Runnable {
 
@@ -123,35 +117,19 @@ public class ConnectivityTests {
 	@Before
 	public void setUp() throws Exception {
 
+		scheduledExecutorService = Executors.newScheduledThreadPool(2);
+
 		Injector gw1Injector = Guice.createInjector(
-				new CommonModule(),
-				new RoutingModule(),
-				new NamingModule(),
-				new ConnectionModule(),
-				new TestbedRuntimeModule(
-						new String[]{"gw1"},
-						SchedulerService.class,
-						RoutingTableService.class,
-						NamingService.class,
-						ConnectionService.class
-				)
+				new TestbedRuntimeModule(scheduledExecutorService, scheduledExecutorService, scheduledExecutorService)
 		);
 		gw1 = gw1Injector.getInstance(TestbedRuntime.class);
+		gw1.getLocalNodeNameManager().addLocalNodeName("gw1");
 
 		Injector gw2Injector = Guice.createInjector(
-				new CommonModule(),
-				new RoutingModule(),
-				new NamingModule(),
-				new ConnectionModule(),
-				new TestbedRuntimeModule(
-						new String[]{"gw2"},
-						SchedulerService.class,
-						RoutingTableService.class,
-						NamingService.class,
-						ConnectionService.class
-				)
+				new TestbedRuntimeModule(scheduledExecutorService, scheduledExecutorService, scheduledExecutorService)
 		);
 		gw2 = gw2Injector.getInstance(TestbedRuntime.class);
+		gw2.getLocalNodeNameManager().addLocalNodeName("gw2");
 
 		// configure topology on both nodes
 		gw1.getRoutingTableService().setNextHop("gw2", "gw2");
@@ -161,8 +139,8 @@ public class ConnectivityTests {
 		gw2.getNamingService().addEntry(new NamingEntry("gw1", new NamingInterface("tcp", "localhost:1110"), 1));
 
 		// start both nodes' stack
-		gw1.startServices();
-		gw2.startServices();
+		gw1.start();
+		gw2.start();
 
 		cs1 = gw1.getConnectionService();
 		cs2 = gw2.getConnectionService();
@@ -205,13 +183,15 @@ public class ConnectivityTests {
 	@After
 	public void tearDown() {
 
-		gw1.stopServices();
-		gw2.stopServices();
+		gw1.stop();
+		gw2.stop();
+
+		ExecutorUtils.shutdown(scheduledExecutorService, 0, TimeUnit.SECONDS);
 
 	}
 
 	@Test
-	public void testConcurrentInstableConnectivity() throws Exception {
+	public void testConcurrentUnstableConnectivity() throws Exception {
 
 		// parallel threads, some opening and some closing one of the two same connections
 		int cnt = 500;
