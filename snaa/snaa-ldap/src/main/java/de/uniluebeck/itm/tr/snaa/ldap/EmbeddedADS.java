@@ -57,7 +57,6 @@ public class EmbeddedADS
      */
     private Partition addPartition( String partitionId, String partitionDn ) throws Exception
     {
-        // Create a new partition named 'foo'.
         Partition partition = new JdbmPartition();
         partition.setId( partitionId );
         partition.setSuffix( partitionDn );
@@ -104,8 +103,8 @@ public class EmbeddedADS
       
         
         // Create some new partitions named 'foo', 'bar' and 'apache'.
-        Partition fooPartition = addPartition( "foo", "dc=foo,dc=com" );
-        Partition barPartition = addPartition( "bar", "dc=bar,dc=com" );
+       // Partition fooPartition = addPartition( "foo", "dc=foo,dc=com" );
+       // Partition barPartition = addPartition( "bar", "dc=bar,dc=com" );
         Partition apachePartition = addPartition( "apache", "dc=apache,dc=org" );
         
         // Index some attributes on the apache partition
@@ -120,34 +119,7 @@ public class EmbeddedADS
         ldapService.start();
 
         
-        // Inject the foo root entry if it does not already exist
-        try
-        {
-            service.getAdminSession().lookup( fooPartition.getSuffixDn() );
-        }
-        catch ( LdapNameNotFoundException lnnfe )
-        {
-            LdapDN dnFoo = new LdapDN( "dc=foo,dc=com" );
-            ServerEntry entryFoo = service.newEntry( dnFoo );
-            entryFoo.add( "objectClass", "top", "domain", "extensibleObject" );
-            entryFoo.add( "dc", "foo" );
-            service.getAdminSession().add( entryFoo );
-        }
-
-        // Inject the bar root entry
-        try
-        {
-            service.getAdminSession().lookup( barPartition.getSuffixDn() );
-        }
-        catch ( LdapNameNotFoundException lnnfe )
-        {
-            LdapDN dnBar = new LdapDN( "dc=bar,dc=com" );
-            ServerEntry entryBar = service.newEntry( dnBar );
-            entryBar.add( "objectClass", "top", "domain", "extensibleObject" );
-            entryBar.add( "dc", "bar" );
-            service.getAdminSession().add( entryBar );
-        }
-
+        
         // Inject the apache root entry
         if ( !service.getAdminSession().exists( apachePartition.getSuffixDn() ) )
         {
