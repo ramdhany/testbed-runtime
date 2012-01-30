@@ -1,0 +1,70 @@
+# ldif for testing import of users
+version: 1
+
+# enable nis schema (needed for apache ldap)
+dn: cn=nis,ou=schema
+changetype: modify
+replace: m-disabled
+m-disabled: FALSE
+
+# create oranizationalUnit 'People'
+dn: ou=People,dc=smartsantander,dc=eu
+objectClass: organizationalUnit
+objectClass: top
+ou: People
+
+# create oranizationalUnit 'Groups'
+dn: ou=Groups,dc=smartsantander,dc=eu
+objectClass: organizationalUnit
+objectClass: top
+ou: Groups
+
+# create group 'testbedadmin'
+dn: cn=testbedadmin,ou=Groups,dc=smartsantander,dc=eu
+objectClass: posixGroup
+objectClass: top
+cn: testbedadmin
+gidNumber: 1
+memberUid: smith
+memberUid: connor
+
+ 
+# create group 'testbeduser'
+dn: cn=testbeduser,ou=Groups,dc=smartsantander,dc=eu
+objectClass: posixGroup
+objectClass: top
+cn: testbeduser
+gidNumber: 2
+memberUid: smith
+
+# create user 'smith'
+dn: uid=smith,ou=People,dc=smartsantander,dc=eu
+uid: smith
+sn: smith
+cn: bob smith
+objectClass: inetOrgPerson
+# objectClass: person
+# objectClass: organizationalPerson
+objectClass: posixAccount
+# objectClass: top
+mail: smith@smartsantander.eu
+loginShell: /bin/bash
+homeDirectory: /home/smith
+uidNumber: 1111
+gidNumber: 2222
+
+# create user 'connor'
+dn: uid=connor,ou=People,dc=smartsantander,dc=eu
+uid: connor
+sn: connor
+cn: alice connor
+objectClass: inetOrgPerson
+# objectClass: person
+# objectClass: organizationalPerson
+objectClass: posixAccount
+# objectClass: top
+mail: connor@smartsantander.eu
+loginShell: /bin/bash
+homeDirectory: /home/connor
+uidNumber: 1112
+gidNumber: 2223

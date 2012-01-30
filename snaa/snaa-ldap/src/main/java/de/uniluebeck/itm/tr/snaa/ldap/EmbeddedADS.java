@@ -116,6 +116,7 @@ public class EmbeddedADS
         service.startup();
         ldapService.setDirectoryService(service);
         ldapService.start();
+        
 
         
         
@@ -160,11 +161,7 @@ public class EmbeddedADS
             
             // And print it if available
             System.out.println( "Found entry : " + result );
-         // Read an entry
-             result = ads.service.getAdminSession().lookup( new LdapDN( "uid=massel,ou=People,dc=smartsantander,dc=eu" ) );
-            
-            // And print it if available
-            System.out.println( "Found entry : " + result );
+        
         }
         catch ( Exception e )
         {
