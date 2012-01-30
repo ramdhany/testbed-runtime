@@ -32,7 +32,6 @@ import org.apache.directory.server.ldap.LdapServer;
 import org.apache.directory.server.protocol.shared.transport.TcpTransport;
 import org.apache.directory.server.xdbm.Index;
 import org.apache.directory.shared.ldap.entry.Entry;
-import org.apache.directory.shared.ldap.exception.LdapNameNotFoundException;
 import org.apache.directory.shared.ldap.name.LdapDN;
 
 /**
@@ -74,7 +73,7 @@ public class EmbeddedADS
      */
     private void addIndex( Partition partition, String... attrs )
     {
-        // Index some attributes on the apache partition
+        // Index some attributes on the smartsantander partition
         HashSet<Index<?, ServerEntry>> indexedAttributes = new HashSet<Index<?, ServerEntry>>();
         
         for ( String attribute:attrs )
@@ -102,13 +101,13 @@ public class EmbeddedADS
         service.setDenormalizeOpAttrsEnabled( true );
       
         
-        // Create some new partitions named 'foo', 'bar' and 'apache'.
+        // Create some new partitions named 'foo', 'bar' and 'smartsantander'.
        // Partition fooPartition = addPartition( "foo", "dc=foo,dc=com" );
        // Partition barPartition = addPartition( "bar", "dc=bar,dc=com" );
-        Partition apachePartition = addPartition( "apache", "dc=apache,dc=org" );
+        Partition smartsantanderPartition = addPartition( "smartsantander", "dc=smartsantander,dc=eu" );
         
-        // Index some attributes on the apache partition
-        addIndex( apachePartition, "objectClass", "ou", "uid" );
+        // Index some attributes on the smartsantander partition
+        addIndex( smartsantanderPartition, "objectClass", "ou", "uid" );
         
         // create an LDAP server        
         LdapServer ldapService = new LdapServer();
@@ -120,14 +119,14 @@ public class EmbeddedADS
 
         
         
-        // Inject the apache root entry
-        if ( !service.getAdminSession().exists( apachePartition.getSuffixDn() ) )
+        // Inject the smartsantander root entry
+        if ( !service.getAdminSession().exists( smartsantanderPartition.getSuffixDn() ) )
         {
-            LdapDN dnApache = new LdapDN( "dc=Apache,dc=Org" );
-            ServerEntry entryApache = service.newEntry( dnApache );
-            entryApache.add( "objectClass", "top", "domain", "extensibleObject" );
-            entryApache.add( "dc", "Apache" );
-            service.getAdminSession().add( entryApache );
+            LdapDN dnSmartsantander = new LdapDN( "dc=smartsantander,dc=eu" );
+            ServerEntry entrySmartsantander = service.newEntry( dnSmartsantander );
+            entrySmartsantander.add( "objectClass", "top", "domain", "extensibleObject" );
+            entrySmartsantander.add( "dc", "smartsantander" );
+            service.getAdminSession().add( entrySmartsantander );
         }
         
         // We are all done !
@@ -157,7 +156,12 @@ public class EmbeddedADS
             EmbeddedADS ads = new EmbeddedADS();
             
             // Read an entry
-            Entry result = ads.service.getAdminSession().lookup( new LdapDN( "dc=apache,dc=org" ) );
+            Entry result = ads.service.getAdminSession().lookup( new LdapDN( "dc=smartsantander,dc=eu" ) );
+            
+            // And print it if available
+            System.out.println( "Found entry : " + result );
+         // Read an entry
+             result = ads.service.getAdminSession().lookup( new LdapDN( "uid=massel,ou=People,dc=smartsantander,dc=eu" ) );
             
             // And print it if available
             System.out.println( "Found entry : " + result );
