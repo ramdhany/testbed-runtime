@@ -20,6 +20,7 @@ package de.uniluebeck.itm.tr.snaa.ldap;
  */
 
 
+import java.io.File;
 import java.util.HashSet;
 
 import org.apache.directory.server.core.DefaultDirectoryService;
@@ -33,6 +34,8 @@ import org.apache.directory.server.protocol.shared.transport.TcpTransport;
 import org.apache.directory.server.xdbm.Index;
 import org.apache.directory.shared.ldap.entry.Entry;
 import org.apache.directory.shared.ldap.name.LdapDN;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A simple example exposing how to embed Apache Directory Server
@@ -43,9 +46,18 @@ import org.apache.directory.shared.ldap.name.LdapDN;
  */
 public class EmbeddedADS
 {
+    
+    private static final Logger log = LoggerFactory.getLogger(EmbeddedADS.class);
+
+    
     /** The directory service */
     private DirectoryService service;
     
+    public DirectoryService getService() {
+        return service;
+    }
+
+
     /**
      * Add a new partition to the server
      *
@@ -88,13 +100,18 @@ public class EmbeddedADS
     /**
      * Initialize the server. It creates the partition, adds the index, and
      * injects the context entries for the created partitions.
+     * @param workingDirectory 
+     * @param ldapPort TODO
      *
      * @throws Exception if there were some problems while initializing the system
      */
-    private void init() throws Exception
+    private void init(File workingDirectory, int ldapPort) throws Exception
     {
         // Initialize the LDAP service
         service = new DefaultDirectoryService();
+        service.setWorkingDirectory(workingDirectory);
+        
+        
         
         // Disable the ChangeLog system
         service.getChangeLog().setEnabled( false );
@@ -111,7 +128,7 @@ public class EmbeddedADS
         
         // create an LDAP server        
         LdapServer ldapService = new LdapServer();
-        ldapService.setTransports(new TcpTransport(389));
+        ldapService.setTransports(new TcpTransport(ldapPort));
         // And start the service
         service.startup();
         ldapService.setDirectoryService(service);
@@ -136,12 +153,14 @@ public class EmbeddedADS
     
     /**
      * Creates a new instance of EmbeddedADS. It initializes the directory service.
+     * @param workingDir 
+     * @param ldapPort 
      *
      * @throws Exception If something went wrong
      */
-    public EmbeddedADS() throws Exception
+    public EmbeddedADS(File workingDir, int ldapPort) throws Exception
     {
-        init();
+        init(workingDir, ldapPort);
     }
 
     /**
@@ -154,7 +173,7 @@ public class EmbeddedADS
         try
         {
             // Create the server
-            EmbeddedADS ads = new EmbeddedADS();
+            EmbeddedADS ads = new EmbeddedADS(new File("target/server-work"),389);
             
             // Read an entry
             Entry result = ads.service.getAdminSession().lookup( new LdapDN( "dc=smartsantander,dc=eu" ) );

@@ -56,8 +56,18 @@
 			</exclusions>
 		</dependency>
 		<dependency>
+			<groupId>org.apache.directory.shared</groupId>
+			<artifactId>shared-all</artifactId>
+			<version>1.0.0-M9</version>
+		</dependency>
+		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
